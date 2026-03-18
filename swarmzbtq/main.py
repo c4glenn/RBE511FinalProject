@@ -16,7 +16,8 @@ def main(seed: Optional[int] = None):
     
     problem = ProblemBuilder(20).add_stage(30).add_stage(30).build()
     
-    print(problem.service_rate)
+    throughput = evaluate_T([10, 10], problem)
+    print(throughput)
 
 
 if __name__ == "__main__":
