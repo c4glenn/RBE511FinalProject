@@ -33,6 +33,7 @@ class RobotAgent(Agent):
         self.has_object = False
         self.wait_timer = 0
         self._act_is_pickup = True
+        self.observed_delay = 0
         
         self.deliveries = 0
         self.crossings_done = 0
@@ -57,7 +58,9 @@ class RobotAgent(Agent):
     def step(self):
         pipe = self.model.pipeline
         logger.info(f"Agent: {self.unique_id} is {self.state} {self.pos} {self.has_object} {pipe.right_end(self.segment)}")
-
+        if self.state != State.WAITING and self.wait_timer != 0:
+            self.observed_delay = np.average([self.wait_timer, self.observed_delay])
+            self.wait_timer = 0
         self.step_map[self.state](pipe)
 
     def _step_acting(self, pipe):
@@ -87,6 +90,7 @@ class RobotAgent(Agent):
             self.state = State.WAITING # waiting on an agent to get here
 
     def _step_waiting(self, pipe):
+        self.wait_timer += 1
         if self.has_object: #waiting at the right side to do a handoff
             next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING]
             if len(next_agents) > 0:

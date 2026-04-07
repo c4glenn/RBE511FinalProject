@@ -47,6 +47,7 @@ class SwarmModel(Model):
                     "Segment": "segment",
                     "X":       lambda a: float(a.pos[0]),
                     "Y":       lambda a: float(a.pos[1]),
+                    "Observed Delay": lambda a: float(a.observed_delay)
                 }
             )
 
