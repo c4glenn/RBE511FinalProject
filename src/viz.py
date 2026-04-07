@@ -18,7 +18,7 @@ from agents import State, STATE_COLORS
 model_params = {
     "n_robots": {
         "type": "SliderInt",
-        "value": 20,
+        "value": 7,
         "label": "Number of robots",
         "min": 2,
         "max": 40,
@@ -26,7 +26,7 @@ model_params = {
     },
     "task_dist_calc":{
         "type": "SliderInt",
-        "value": 50,
+        "value": 70,
         "label": "Percent for task 1",
         "min": 1,
         "max": 100,
@@ -192,9 +192,10 @@ ThroughputPlot = make_plot_component("Throughput")
 # ── Page entry-point ──────────────────────────────────────────────────────────
 
 model = SwarmModel(
-    n_robots=20,
+    n_robots=7,
     n_tasks=1,
     speed=20.0,
+    task_dist_calc=70
 )
 
 page = SolaraViz(

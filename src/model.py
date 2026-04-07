@@ -20,6 +20,8 @@ class SwarmModel(Model):
             task_distribution = np.array([task_dist_calc, 100 - task_dist_calc]) if not task_distribution else task_distribution
         )
         
+        self.n_tasks = n_tasks
+        
         self.total_deliveries = 0
         self.delivery_log = [0]
         
