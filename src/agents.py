@@ -70,7 +70,7 @@ class RobotAgent(Agent):
             self.state = State.MOVING_TO_LEFT
     
     def _step_moving_left(self, pipe):
-        arrived = self._move_toward(pipe.left_end(self.segment))
+        arrived = self._move_toward(np.array([pipe.left_end(self.segment)[0], self.pos[1]])) # pyright: ignore[reportOptionalSubscript, reportIndexIssue]
         if not arrived:
             return
         if self.segment == 0: #leftmost segment
@@ -78,7 +78,7 @@ class RobotAgent(Agent):
         else:
             self.state = State.WAITING # waiting on an agent to get here
     def _step_moving_right(self, pipe):
-        arrived = self._move_toward(pipe.right_end(self.segment))
+        arrived = self._move_toward(np.array([pipe.right_end(self.segment)[0], self.pos[1]])) # pyright: ignore[reportOptionalSubscript, reportIndexIssue]
         if not arrived:
             return
         if self.segment >= len(pipe.tasks): #rightmost segment
