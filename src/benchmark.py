@@ -8,8 +8,8 @@ from model import SwarmModel
 logger = logging.getLogger()
 
 def main():
-    swarm = SwarmModel(2, 1)
-    swarm.run_for(10)
+    swarm = SwarmModel(2, 1, 40)
+    swarm.run_for(20)
     
 
 
