@@ -56,25 +56,48 @@ class RobotAgent(Agent):
     
     def step(self):
         pipe = self.model.pipeline
-        logger.info(f"Agent: {self.unique_id} is {self.state}")
+        logger.info(f"Agent: {self.unique_id} is {self.state} {self.pos} {self.has_object} {pipe.right_end(self.segment)}")
 
         self.step_map[self.state](pipe)
 
     def _step_acting(self, pipe):
-        pass
+        if self.segment == 0:
+            self.has_object = True
+            self.state = State.MOVING_TO_RIGHT
+        if self.segment >= len(pipe.tasks):
+            self.has_object = False
+            self.model.total_deliveries += 1
+            self.state = State.MOVING_TO_LEFT
+    
     def _step_moving_left(self, pipe):
         arrived = self._move_toward(pipe.left_end(self.segment))
         if not arrived:
             return
-        
-        self.state = State.WAITING
+        if self.segment == 0: #leftmost segment
+            self.state = State.ACTING
+        else:
+            self.state = State.WAITING # waiting on an agent to get here
     def _step_moving_right(self, pipe):
         arrived = self._move_toward(pipe.right_end(self.segment))
         if not arrived:
             return
-        self.state = State.WAITING
+        if self.segment >= len(pipe.tasks): #rightmost segment
+            self.state = State.ACTING
+        else:
+            self.state = State.WAITING # waiting on an agent to get here
+
     def _step_waiting(self, pipe):
-        pass
+        if self.has_object: #waiting at the right side to do a handoff
+            next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING]
+            if len(next_agents) > 0:
+                next_agent = next_agents[0]
+                next_agent.has_object = True
+                self.has_object = False
+                next_agent.state = State.MOVING_TO_RIGHT
+                self.state = State.MOVING_TO_LEFT
+        else: #waiting at the left side to pick up an object (let a robot on the other side handle the logic)
+            pass
+    
     def _step_crossing(self, pipe):
         pass
     
