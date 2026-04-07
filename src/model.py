@@ -24,9 +24,9 @@ class SwarmModel(Model):
         n_segs = self.pipeline.n_segments
         for i in range(n_robots):
             seg = i % n_segs
-            jitter = self.rng.uniform(-8, 8, size=2)
+            jitter = self.rng.uniform(-20, 20, size=1)
             robot = RobotAgent(model=self, segment=seg, speed=speed)
-            robot.pos = self.pipeline.left_end(seg) + jitter
+            robot.pos = np.array([self.pipeline.left_end(seg)[0] + 0.5 * (self.pipeline.right_end(seg)[0] - self.pipeline.left_end(seg)[0]) + jitter[0], self.pipeline.left_end(seg)[1]])
         
         segment_reporters = {
             f"Segment {s}": (lambda m, s=s: sum(1 for a in m.agents if a.segment == s))
