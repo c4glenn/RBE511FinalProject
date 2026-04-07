@@ -24,13 +24,13 @@ model_params = {
         "max": 40,
         "step": 1,
     },
-    "n_tasks": {
+    "task_dist_calc":{
         "type": "SliderInt",
-        "value": 1,
-        "label": "Number of tasks",
+        "value": 50,
+        "label": "Percent for task 1",
         "min": 1,
-        "max": 6,
-        "step": 1,
+        "max": 100,
+        "step": 1
     },
     "speed": {
         "type": "SliderFloat",
@@ -193,8 +193,8 @@ ThroughputPlot = make_plot_component("Throughput")
 
 model = SwarmModel(
     n_robots=20,
-    n_tasks=2,
-    speed=3.0,
+    n_tasks=1,
+    speed=20.0,
 )
 
 page = SolaraViz(

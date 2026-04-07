@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 from mesa import Model
@@ -8,14 +8,16 @@ from pipeline import Pipeline
 from agents import RobotAgent, State
 
 class SwarmModel(Model):
-    def __init__(self, n_robots:int = 20, n_tasks:int=2, speed:float = 3.0, seed: int = 42, arena_width:float= 600.0, arena_height:float = 200.0, interface_gap:float = 25.0) -> None:
+    def __init__(self, n_robots:int = 20, n_tasks:int=1, speed:float = 3.0, seed: int = 42, arena_width:float= 600.0, arena_height:float = 200.0, interface_gap:float = 25.0, task_dist_calc: int = 50, task_distribution: Optional[np.ndarray] = None) -> None:
+        """you have to pass in a task distribution if n_tasks > 1"""
         super().__init__(rng=seed)
-        
+            
         self.pipeline = Pipeline(
             n_tasks       = n_tasks,
             arena_width   = arena_width,
             arena_height  = arena_height,
             interface_gap = interface_gap,
+            task_distribution = np.array([task_dist_calc, 100 - task_dist_calc]) if not task_distribution else task_distribution
         )
         
         self.total_deliveries = 0

@@ -17,11 +17,14 @@ class TaskNode:
         
 @dataclass
 class Pipeline:
-    n_tasks       : int   = 2
+    n_tasks       : int   = 1
     arena_width   : float = 600.0
     arena_height  : float = 200.0
     interface_gap : float = 25.0
     margin        : float = 60.0
+    task_distribution: np.ndarray = field(default_factory= lambda: np.array([50, 50]))
+    """distributions of tasks, all the components need to add up to 100
+    """
     
     source_pos : np.ndarray = field(init=False)
     nest_pos   : np.ndarray = field(init=False)
@@ -38,8 +41,8 @@ class Pipeline:
         
         n = self.n_tasks
         corridor = self.arena_width - 2 * self.margin
-        slot = corridor / (n+1)
-        centers_x = [self.margin + slot * (i+1) for i in range(n)]
+        slot = corridor / 100
+        centers_x = [self.margin + slot * np.sum(self.task_distribution[:i+1]) for i in range(n)]
         self.tasks = [
             TaskNode(index = i, 
                      entry = np.array([cx - self.interface_gap / 2, h]), 

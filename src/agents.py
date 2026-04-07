@@ -26,7 +26,7 @@ class RobotAgent(Agent):
     def __init__(self, model: Any, segment=0, speed=3.0) -> None:
         super().__init__(model)
         self.segment = segment
-        self.speed = speed
+        self.speed = max(speed + model.rng.uniform(-0.5, 0.5), 0.5)
     
         self.state = State.MOVING_TO_LEFT
         self.pos = model.pipeline.left_end(self.segment)
