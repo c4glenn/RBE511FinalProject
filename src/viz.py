@@ -99,21 +99,27 @@ def _draw_pipeline(ax, model):
 
     # Source marker
     sx, sy = pipe.source_pos
-    ax.plot(sx, sy, marker="^", markersize=12,
-            color="#2196F3", zorder=7, label="Source")
-    ax.text(sx, sy - 14, "SRC", ha="center", va="top",
-            fontsize=7, color="#2196F3", zorder=7)
+    ax.add_patch(mpatches.Rectangle(
+            (0, 0), sx, H,
+            facecolor="#2196F3", edgecolor="#4618EF",
+            linewidth=0.8, zorder=2,
+        ))
+    ax.text(sx / 2, sy, "SRC", ha="center", va="top",
+            fontsize=7, color="white", zorder=7)
 
     # Nest marker
     nx, ny = pipe.nest_pos
-    ax.plot(nx, ny, marker="s", markersize=11,
-            color="#9C27B0", zorder=7, label="Nest")
-    ax.text(nx, ny - 14, "NEST", ha="center", va="top",
-            fontsize=7, color="#9C27B0", zorder=7)
+    ax.add_patch(mpatches.Rectangle(
+            (nx, 0), W-nx, H,
+            facecolor="#2196F3", edgecolor="#9C27B0",
+            linewidth=0.8, zorder=2,
+        ))
+    ax.text(nx + 0.5 * (W-nx), ny, "NEST", ha="center", va="top",
+            fontsize=7, color="white", zorder=7)
 
     # Centreline
-    ax.plot([0, W], [mid_y, mid_y],
-            color="#CCC", linewidth=0.6, linestyle=":", zorder=3)
+    # ax.plot([0, W], [mid_y, mid_y],
+    #         color="#CCC", linewidth=0.6, linestyle=":", zorder=3)
 
 
 def _draw_robots(ax, model):
@@ -180,10 +186,7 @@ def ArenaView(model):
 DeliveryPlot = make_plot_component("Total Deliveries")
 ThroughputPlot = make_plot_component("Throughput")
 
-StateBreakdownPlot = make_plot_component({
-    "Waiting":  "orange",
-    "Crossing": "crimson",
-})
+# StateBreakdownPlot = make_plot_component("")
 
 
 # ── Page entry-point ──────────────────────────────────────────────────────────
@@ -200,7 +203,7 @@ page = SolaraViz(
         ArenaView,
         DeliveryPlot,
         ThroughputPlot,
-        StateBreakdownPlot,
+        # StateBreakdownPlot,
     ], # pyright: ignore[reportArgumentType]
     model_params=model_params,
     name="Swarm Pipeline",
