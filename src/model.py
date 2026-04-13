@@ -17,7 +17,7 @@ class SwarmModel(Model):
             arena_width   = arena_width,
             arena_height  = arena_height,
             interface_gap = interface_gap,
-            task_distribution = np.array([task_dist_calc, 100 - task_dist_calc]) if not task_distribution else task_distribution
+            task_distribution = np.array([task_dist_calc, 100 - task_dist_calc]) if not task_distribution.any() else task_distribution  # type: ignore
         )
         
         self.n_tasks = n_tasks

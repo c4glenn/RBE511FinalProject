@@ -2,7 +2,7 @@
 viz.py — SolaraViz visualization for SwarmModel
 Run with:  solara run viz.py
 """
-
+import numpy as np
 import solara
 import matplotlib.patches as mpatches
 from matplotlib.figure import Figure
@@ -43,6 +43,8 @@ model_params = {
     "arena_width": 600.0,   # fixed — not shown in sidebar
     "arena_height": 200.0,  # fixed — not shown in sidebar
     "interface_gap": 25.0,  # fixed — not shown in sidebar
+    "task_distribution": np.array([None]),
+    "n_tasks": 1,
 }
 
 
@@ -192,10 +194,10 @@ ThroughputPlot = make_plot_component("Throughput")
 # ── Page entry-point ──────────────────────────────────────────────────────────
 
 model = SwarmModel(
-    n_robots=7,
+    n_robots=20,
     n_tasks=1,
     speed=20.0,
-    task_dist_calc=70
+    task_distribution=np.array([50,50])
 )
 
 page = SolaraViz(
@@ -203,7 +205,7 @@ page = SolaraViz(
     components=[
         ArenaView,
         DeliveryPlot,
-        ThroughputPlot,
+        # ThroughputPlot,
         # StateBreakdownPlot,
     ], # pyright: ignore[reportArgumentType]
     model_params=model_params,
