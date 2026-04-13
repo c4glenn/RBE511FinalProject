@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Tuple
 from enum import Enum, auto
 import logging
 
@@ -23,7 +23,7 @@ STATE_COLORS = {
 }
 
 class RobotAgent(Agent):
-    def __init__(self, model: Any, segment=0, speed=3.0, allowed_to_switch:bool = True, gamma: float = 0.1, k:float = 5, m: float=8, switching_cost: int = 30) -> None:
+    def __init__(self, model: Any, segment=0, speed=3.0, allowed_to_switch:bool = True, gamma: float = 0.1, k:float = 5, m: float=8, switching_cost: int = 30, delay_random_range: Tuple[float, float] = (0.0, 10.0)) -> None:
         super().__init__(model)
         self.segment = segment
         self.speed = max(speed + model.rng.uniform(-0.5, 0.5), 0.5)
@@ -37,7 +37,7 @@ class RobotAgent(Agent):
         
         self.crossing_time = -1
         
-        delays_list = [-1]*(model.n_tasks + 1)
+        delays_list = [self.model.rng.uniform(*delay_random_range) for _ in range(model.n_tasks + 1)]
         self.observed_delays = np.array(delays_list)
         
         
@@ -108,7 +108,7 @@ class RobotAgent(Agent):
         if self.wait_timer == -1: self.wait_timer = 0
         self.wait_timer += 1
         if self.has_object: #waiting at the right side to do a handoff
-            next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING]
+            next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING and x.has_object == False]
             if len(next_agents) > 0:
                 next_agent = self.model.rng.choice(next_agents)
                 next_agent.has_object = True
