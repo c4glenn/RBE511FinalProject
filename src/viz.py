@@ -187,6 +187,7 @@ def ArenaView(model):
 
 DeliveryPlot = make_plot_component("Total Deliveries")
 ThroughputPlot = make_plot_component("Throughput")
+Task_assignment_plot = make_plot_component([f"Segment {s}" for s in range(2)])
 
 # StateBreakdownPlot = make_plot_component("")
 
@@ -197,7 +198,8 @@ model = SwarmModel(
     n_robots=20,
     n_tasks=1,
     speed=20.0,
-    task_distribution=np.array([50,50])
+    task_distribution=np.array([50,50]),
+    robot_initial_placements=np.array([15,5])
 )
 
 page = SolaraViz(
@@ -205,8 +207,7 @@ page = SolaraViz(
     components=[
         ArenaView,
         DeliveryPlot,
-        # ThroughputPlot,
-        # StateBreakdownPlot,
+        Task_assignment_plot,
     ], # pyright: ignore[reportArgumentType]
     model_params=model_params,
     name="Swarm Pipeline",
