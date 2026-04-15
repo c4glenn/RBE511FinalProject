@@ -139,7 +139,7 @@ class RobotAgent(Agent):
                 self.timer -= 1
                 return #handoff about to happen - dont switch
             else:
-                next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING and x.has_object == False]
+                next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING and x.has_object == False and x.paired is None]
                 if len(next_agents) > 0:
                     next_agent = self.model.rng.choice(next_agents)
                     self.paired = next_agent
