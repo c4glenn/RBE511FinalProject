@@ -22,7 +22,7 @@ class SwarmModel(Model):
             arena_width   = arena_width,
             arena_height  = arena_height,
             interface_gap = interface_gap,
-            task_distribution = np.array([task_dist_calc, 100 - task_dist_calc]) if not task_distribution.any() else task_distribution  # type: ignore
+            task_distribution = np.array([task_dist_calc, 100 - task_dist_calc]) if task_distribution is None else task_distribution  # type: ignore
         )
         
         self.n_tasks = n_tasks
@@ -40,7 +40,7 @@ class SwarmModel(Model):
                 while seg < n_segs:
                     if i < sum(robot_initial_placements[0:seg+1]): break
                     seg += 1
-            print(seg, n_segs, i % n_segs)
+            # print(seg, n_segs, i % n_segs)
                 
                 
             jitter = self.rng.uniform(-20, 20, size=1)
