@@ -23,7 +23,7 @@ STATE_COLORS = {
 }
 
 class RobotAgent(Agent):
-    def __init__(self, model: Any, segment=0, speed=3.0, allowed_to_switch:bool = True, gamma: float = 0.1, k:float = 5, m: float=8, switching_cost: int = 30, delay_random_range: Tuple[float, float] = (0.0, 10.0)) -> None:
+    def __init__(self, model: Any, segment=0, speed=3.0, allowed_to_switch:bool = True, gamma: float = 0.1, k:float = 5, m: float=8, switching_cost: int = 30, delay_random_range: Tuple[float, float] = (0.0, 10.0), transfer_time: int = 3, pickup_time: int = 2, dropoff_time: int = 2) -> None:
         super().__init__(model)
         self.segment = segment
         self.speed = max(speed + model.rng.uniform(-0.5, 0.5), 0.5)
@@ -31,7 +31,9 @@ class RobotAgent(Agent):
         self.state = State.MOVING_TO_LEFT
         self.pos = model.pipeline.left_end(self.segment)
         self.has_object = False
+        self.paired = None
         self.wait_timer = 0
+        self.timer = 0
         self._act_is_pickup = True
         self.observed_delay = 0
         
@@ -49,6 +51,9 @@ class RobotAgent(Agent):
         self.k = k
         self.m = m
         self.switching_cost = switching_cost
+        self.transfer_time = transfer_time
+        self.pickup_time = pickup_time
+        self.dropoff_time = dropoff_time
         
         self.step_map = {
             State.ACTING: self._step_acting,
@@ -80,12 +85,24 @@ class RobotAgent(Agent):
 
     def _step_acting(self, pipe):
         if self.segment == 0:
-            self.has_object = True
-            self.state = State.MOVING_TO_RIGHT
+            if self.timer == -1: self.timer = self.pickup_time
+            if self.timer <= 0:
+                self.has_object = True
+                self.state = State.MOVING_TO_RIGHT
+                self.timer = -1
+            else:
+                self.timer -= 1
         if self.segment >= len(pipe.tasks):
-            self.has_object = False
-            self.model.total_deliveries += 1
-            self.state = State.MOVING_TO_LEFT
+            if self.timer == -1: self.timer = self.dropoff_time
+            if self.timer <= 0:
+                self.has_object = False
+                self.model.total_deliveries += 1
+                self.state = State.MOVING_TO_LEFT
+                self.timer = -1          
+            else:
+                self.timer -= 1
+
+            
     
     def _step_moving_left(self, pipe):
         arrived = self._move_toward(np.array([pipe.left_end(self.segment)[0], self.pos[1]])) # pyright: ignore[reportOptionalSubscript, reportIndexIssue]
@@ -108,21 +125,32 @@ class RobotAgent(Agent):
         if self.wait_timer == -1: self.wait_timer = 0
         self.wait_timer += 1
         if self.has_object: #waiting at the right side to do a handoff
-            next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING and x.has_object == False]
-            if len(next_agents) > 0:
-                next_agent = self.model.rng.choice(next_agents)
-                next_agent.has_object = True
+            if self.paired != None and self.timer <= 0:
+                self.paired.has_object = True
                 self.has_object = False
-                logging.debug(f"{self.unique_id} passed an object to {next_agent.unique_id}")
-                next_agent.state = State.MOVING_TO_RIGHT
+                logging.debug(f"{self.unique_id} passed an object to {self.paired.unique_id}")
+                self.paired.state = State.MOVING_TO_RIGHT
                 self.state = State.MOVING_TO_LEFT
-                return
+                self.paired.paired = None
+                self.paired = None
+                self.timer = -1
+                return #handoff happend - dont switch
+            elif self.paired != None:
+                self.timer -= 1
+                return #handoff about to happen - dont switch
+            else:
+                next_agents = [x for x in self.model.agents if x.segment == self.segment + 1 and x.state == State.WAITING and x.has_object == False]
+                if len(next_agents) > 0:
+                    next_agent = self.model.rng.choice(next_agents)
+                    self.paired = next_agent
+                    next_agent.paired = self
+                    self.timer = self.transfer_time
+                    return # paired off for handoff 
         else: #waiting at the left side to pick up an object (let a robot on the other side handle the logic)
-            pass
+            if self.paired: return # someone has picked to hand an object, dont switch
             
         if self._allowed_to_switch:
             other_delay = self.observed_delays[self.segment + (1 if self.has_object else -1)] 
-            if other_delay == -1: other_delay = 0.5*self.observed_delays[self.segment] #if we haven't observed the delay yet, assume its 0
             prob = self.switching_probability(self.observed_delay, max(other_delay, 0.01)) #prevent a divide by 0 error by making the delay non-zero
             if self.model.rng.random() < prob:
                 self.state = State.CROSSING
