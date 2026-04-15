@@ -162,9 +162,10 @@ class RobotAgent(Agent):
         return 1/(1 + np.exp(-theta)) * self.gamma
     
     def theta_calc(self, current_state_estimate_delay: float, other_state_estimate_delay: float) -> float:
-        dij = current_state_estimate_delay
-        dji = other_state_estimate_delay
-        return (1/self.k)*((dij / (dij * max(dij, dji) / dji)) - self.m)
+        dij = max(current_state_estimate_delay, 0.0001)
+        dji = max(other_state_estimate_delay, 0.0001) 
+
+        return (1/self.k)*((dij / ((dij * max(dij, dji)) / dji)) - self.m)
     
     def _step_crossing(self, pipe):
         if self.crossing_time == -1:
