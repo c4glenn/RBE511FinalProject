@@ -16,7 +16,7 @@ class SwarmModel(Model):
                  transfer_time: int = 3,pickup_time: int = 2, dropoff_time: int = 2) -> None:
         """you have to pass in a task distribution if n_tasks > 1"""
         super().__init__(rng=seed)
-            
+                
         self.pipeline = Pipeline(
             n_tasks       = n_tasks,
             arena_width   = arena_width,
@@ -29,14 +29,14 @@ class SwarmModel(Model):
         
         self.total_deliveries = 0
         self.delivery_log = [0]
+        self.allocation_log = []
         
         spacing = 0.9 * arena_height / n_robots
         
         n_segs = self.pipeline.n_segments
         for i in range(n_robots):
-            seg = i % n_segs
+            seg = 0
             if robot_initial_placements is not None:
-                seg = 0
                 while seg < n_segs:
                     if i < sum(robot_initial_placements[0:seg+1]): break
                     seg += 1
@@ -56,20 +56,12 @@ class SwarmModel(Model):
         }
         self.datacollector = DataCollector(
                 model_reporters={
-                    "Total Deliveries": lambda m: m.total_deliveries,
-                    "Throughput":       self._throughput,
-                    "Waiting":          lambda m: sum(1 for a in m.agents if a.state == State.WAITING),
-                    "Crossing":         lambda m: sum(1 for a in m.agents if a.state == State.CROSSING),
+                    "total_deliveries": lambda m: m.total_deliveries,
+                    "total_crossings":  lambda m: sum(a.crossings_done for a in m.agents),
+                    "throughput":       self._throughput,
+                    "allocation":       "allocation_log",
                     **segment_reporters,
-                },
-                agent_reporters={
-                    "State":   lambda a: a.state.name,
-                    "Segment": "segment",
-                    "X":       lambda a: float(a.pos[0]),
-                    "Y":       lambda a: float(a.pos[1]),
-                    "Observed Delay": lambda a: float(a.observed_delay)
-                }
-            )
+                })
 
     def _throughput(self, _=None):
         log = self.delivery_log
@@ -82,3 +74,4 @@ class SwarmModel(Model):
         self.datacollector.collect(self)
         self.agents.shuffle_do("step")
         self.delivery_log.append(self.total_deliveries)
+        self.allocation_log.append(np.array([sum(1 for a in self.agents if a.segment == s) for s in range(self.pipeline.n_segments)]))
