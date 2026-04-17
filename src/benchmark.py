@@ -113,7 +113,7 @@ class RunResult(ModelParams):
 
     def save(self, filename: str):
         with open(filename, "w+") as f:
-            f.write(f"{'\t'.join(v for k,v in self.__dict__.items() if k != "allocation")}\n")
+            f.write(f"{'\t'.join(str(v) for k,v in self.__dict__.items() if k != "allocation")}\n")
     
 def assignments(num_robots, num_tasks, depth=0):
     if num_robots == 0: raise ValueError("wtf")
@@ -187,8 +187,8 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = [2,3,4,5]
-    params.n_robots = [20,30,40,50] #let the model set it to 10*number of tasks
+    params.n_tasks = 3
+    params.n_robots = 20
     
     
     run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
