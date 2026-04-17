@@ -132,7 +132,6 @@ def assignments(num_robots, num_tasks, depth=0):
         options = [[0]*(num_tasks+1)]
         for i in range(0, num_robots+1):
             options[0][i%(num_tasks+1)] += 1
-    print(options)
     return options
 
 def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
@@ -193,8 +192,8 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = 4
-    params.n_robots = 5
+    params.n_tasks = [2,3,4,5]
+    params.n_robots = [20,30,40,50]
     
     
     run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
