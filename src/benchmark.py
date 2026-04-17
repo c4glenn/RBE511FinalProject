@@ -129,13 +129,15 @@ def assignments(num_robots, num_tasks, depth=0):
                 options.append([i, val])
     return options
 
-def find_optimal(params:ModelParams) -> Tuple[int, List[int]]:
+def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
     with open("optimal.json", "r+") as f:
         cache = jsonpickle.decode(f.read())
     # print([x for x in cache.keys()][-1])
     # print(params.__repr__())
     
-    if params._optimal_concerns() in cache: return cache[params._optimal_concerns()] # pyright: ignore[reportReturnType, reportIndexIssue, reportCallIssue, reportArgumentType, reportOperatorIssue]
+    if params._optimal_concerns() in cache: 
+        if cache[params._optimal_concerns()][0] is not None: # pyright: ignore[reportIndexIssue, reportCallIssue, reportArgumentType]
+            return (cache[params._optimal_concerns()][0], np.array(cache[params._optimal_concerns()][1])) # pyright: ignore[reportReturnType, reportIndexIssue, reportCallIssue, reportArgumentType, reportOperatorIssue]
     params = copy.deepcopy(params)
     params.allowed_to_switch = False
     assert params.is_singleton, "cant find the optimal for a sweep"
@@ -152,7 +154,7 @@ def find_optimal(params:ModelParams) -> Tuple[int, List[int]]:
         deliveries = model.delivery_log[-1]
         if deliveries > best_delivery_count:
             best_delivery_count = deliveries
-            best_allocation = possible_assignment
+            best_allocation = np.array(possible_assignment)
     
     cache[params._optimal_concerns()] = (best_delivery_count, best_allocation) # type: ignore
     with open("optimal.json", "r+") as f:
@@ -189,7 +191,7 @@ def main():
     params.n_robots = [20,30,40,50] #let the model set it to 10*number of tasks
     
     
-    run_and_save(params, "results.tsv", 5)
+    run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

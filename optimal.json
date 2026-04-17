@@ -1,1 +1,1 @@
-{}
+{"ModelParams(self.n_robots=20,self.n_tasks=3self.speed=3.0,self.arena_width=600.0,self.arena_height=200.0,self.interface_gap=25.0,self.task_dist_calc=50,self.task_distribution=None,self.delay_random_range=(0.0, 10.0),self.transfer_time=3,self.pickup_time=1,self.dropoff_time=1": {"py/tuple": [149, [7, 8, 2, 3]]}}
