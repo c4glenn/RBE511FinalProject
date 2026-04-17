@@ -34,10 +34,7 @@ class ModelParams():
     delay_random_range: Tuple[float, float] | List[Tuple[float, float]] = (0.0, 10.0)
     transfer_time: int | List[int]= 3
     pickup_time: int | List[int] = 1
-    dropoff_time: int | List[int] = 1        
-    
-    def __post_init__(self):
-        pass
+    dropoff_time: int | List[int] = 1                            
         
     def create_swarm_model(self) -> SwarmModel:
         return SwarmModel(
@@ -153,6 +150,27 @@ def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.n
     best_delivery_count = 0
     best_allocation = None
     params.robot_initial_placements = [np.array(possible_assignment) for possible_assignment in assignments(num_robots, num_segments)]
+    if len(params.robot_initial_placements) >= 20:
+        params.robot_initial_placements = []
+        if params.task_distribution is not None:
+            assumed_optimal = [np.floor((x/100)*num_robots) for x in params.task_distribution] # pyright: ignore[reportOptionalIterable] assertion above handles this
+        else:
+            assumed_optimal = [np.floor((num_segments/100)*num_robots) for _ in range(num_segments)] # pyright: ignore[reportOperatorIssue]
+        assumed_optimal[0] += num_robots - sum(assumed_optimal) # pyright: ignore[reportOperatorIssue] asssertion handles this 
+        # ^ logically this is to ensure theres no leftover agents due to the floor
+        params.robot_initial_placements.append(np.array(assumed_optimal))
+        for i, val in enumerate(assumed_optimal):
+            for j, val in enumerate(assumed_optimal):
+                if i == j: continue
+                potential_arrangement = copy.deepcopy(assumed_optimal)
+                potential_arrangement[i] -= 1
+                potential_arrangement[j] += 1
+                params.robot_initial_placements.append(np.array(potential_arrangement))
+        
+    
+    
+                
+    
     
     results = mesa.batch_run(
         SwarmModel,
@@ -198,8 +216,8 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = [3]
-    params.n_robots = 8
+    params.n_tasks = [2,3,4,5]
+    params.n_robots = [20,30,40,50]
     
     run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
 
