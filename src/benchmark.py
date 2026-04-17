@@ -112,7 +112,7 @@ class RunResult(ModelParams):
         self.creation_time = datetime.datetime.now() #to help ensure uniqueness between runs? we shall see
 
     def save(self, filename: str):
-        with open(filename, "w+") as f:
+        with open(filename, "a+") as f:
             f.write(f"{'\t'.join(str(v) for k,v in self.__dict__.items() if k != "allocation")}\n")
     
 def assignments(num_robots, num_tasks, depth=0):
@@ -120,13 +120,19 @@ def assignments(num_robots, num_tasks, depth=0):
     if num_tasks == 1: 
         return [num_robots]
     options = []
-    for i in range(1, num_robots-num_tasks):
+    for i in range(1, num_robots-num_tasks+1):
         possible_vals = assignments(num_robots-i, num_tasks-1, depth+1)
         for val in possible_vals:
             try:
                 options.append([i, *val])
             except:
                 options.append([i, val])
+                
+    if options == []:
+        options = [[0]*(num_tasks+1)]
+        for i in range(0, num_robots+1):
+            options[0][i%(num_tasks+1)] += 1
+    print(options)
     return options
 
 def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
@@ -136,7 +142,7 @@ def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
     # print(params.__repr__())
     
     if params._optimal_concerns() in cache: 
-        if cache[params._optimal_concerns()][0] is not None: # pyright: ignore[reportIndexIssue, reportCallIssue, reportArgumentType]
+        if cache[params._optimal_concerns()][1] is not None: # pyright: ignore[reportIndexIssue, reportCallIssue, reportArgumentType]
             return (cache[params._optimal_concerns()][0], np.array(cache[params._optimal_concerns()][1])) # pyright: ignore[reportReturnType, reportIndexIssue, reportCallIssue, reportArgumentType, reportOperatorIssue]
     params = copy.deepcopy(params)
     params.allowed_to_switch = False
@@ -157,7 +163,7 @@ def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
             best_allocation = np.array(possible_assignment)
     
     cache[params._optimal_concerns()] = (best_delivery_count, best_allocation) # type: ignore
-    with open("optimal.json", "r+") as f:
+    with open("optimal.json", "w+") as f:
         f.write(jsonpickle.encode(cache)) # type: ignore
     
     return best_delivery_count, best_allocation # pyright: ignore[reportReturnType]
@@ -187,8 +193,8 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = 3
-    params.n_robots = 20
+    params.n_tasks = 4
+    params.n_robots = 5
     
     
     run_and_save(params, "results.tsv", 5, itterations_per_combo=1)

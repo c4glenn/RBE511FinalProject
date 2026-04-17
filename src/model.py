@@ -74,4 +74,4 @@ class SwarmModel(Model):
         self.datacollector.collect(self)
         self.agents.shuffle_do("step")
         self.delivery_log.append(self.total_deliveries)
-        self.allocation_log.append(np.array([sum(1 for a in self.agents if a.segment == s) for s in range(self.pipeline.n_segments)]))
+        self.allocation_log.append(np.array([sum(1 for a in self.agents if a.segment == s) for s in range(self.pipeline.n_segments+1)]))
