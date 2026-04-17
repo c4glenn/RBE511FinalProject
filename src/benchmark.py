@@ -120,7 +120,7 @@ def assignments(num_robots, num_tasks, depth=0):
     if num_tasks == 1: 
         return [num_robots]
     options = []
-    for i in range(1, num_robots-num_tasks+1):
+    for i in range(1, num_robots-num_tasks+2):
         possible_vals = assignments(num_robots-i, num_tasks-1, depth+1)
         for val in possible_vals:
             try:
@@ -134,7 +134,7 @@ def assignments(num_robots, num_tasks, depth=0):
             options[0][i%(num_tasks+1)] += 1
     return options
 
-def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
+def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.ndarray]:
     with open("optimal.json", "r+") as f:
         cache = jsonpickle.decode(f.read())
     # print([x for x in cache.keys()][-1])
@@ -152,15 +152,21 @@ def find_optimal(params:ModelParams) -> Tuple[int, np.ndarray]:
     
     best_delivery_count = 0
     best_allocation = None
-    for possible_assignment in tqdm.tqdm(assignments(num_robots, num_segments)):
-        params.robot_initial_placements = np.array(possible_assignment)
-        model = params.create_swarm_model()
-        model.run_for(3600)
-        deliveries = model.delivery_log[-1]
-        if deliveries > best_delivery_count:
-            best_delivery_count = deliveries
-            best_allocation = np.array(possible_assignment)
+    params.robot_initial_placements = [np.array(possible_assignment) for possible_assignment in assignments(num_robots, num_segments)]
     
+    results = mesa.batch_run(
+        SwarmModel,
+        number_processes=number_process,
+        parameters=params.create_param_dict(),
+        max_steps=3600,
+        display_progress=True,
+        rng=42 #pyright: ignore[reportArgumentType] THIS IS LITERALLY WHAT THE DOCS SAY TO DO https://mesa.readthedocs.io/latest/migration_guide.html#batch-run
+    )
+
+    results = sorted(results, key=lambda x: x["total_deliveries"])
+    best_result = results[0]
+    best_delivery_count = best_result["total_deliveries"]
+    best_allocation = best_result["robot_initial_placements"]
     cache[params._optimal_concerns()] = (best_delivery_count, best_allocation) # type: ignore
     with open("optimal.json", "w+") as f:
         f.write(jsonpickle.encode(cache)) # type: ignore
@@ -181,7 +187,7 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
     )
     for test in results:
         test_result=RunResult(**{k:v for k,v in test.items() if "Segment" not in k})
-        oc, oa = find_optimal(test_result)
+        oc, oa = find_optimal(test_result, number_process)
         test_result.optimal_delivery_count = oc
         assert test_result.allocation is not None, "Cleaner than type ignore"
         total = 0.0
@@ -192,9 +198,8 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = [2,3,4,5]
-    params.n_robots = [20,30,40,50]
-    
+    params.n_tasks = [3]
+    params.n_robots = 8
     
     run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
 
