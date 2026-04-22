@@ -69,7 +69,7 @@ class ModelParams():
             "arena_height": self.arena_height,
             "interface_gap": self.interface_gap,
             "task_dist_calc": self.task_dist_calc,
-            "task_distribution": self.task_distribution,
+            "task_distribution": self.task_distribution if isinstance(self.task_distribution, list) else [self.task_distribution],
             "robot_initial_placements": self.robot_initial_placements,
             "allowed_to_switch": self.allowed_to_switch,
             "gamma": self.gamma,
@@ -136,7 +136,7 @@ def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.n
         cache = jsonpickle.decode(f.read())
     # print([x for x in cache.keys()][-1])
     # print(params.__repr__())
-    
+        
     if params._optimal_concerns() in cache: 
         if cache[params._optimal_concerns()][1] is not None: # pyright: ignore[reportIndexIssue, reportCallIssue, reportArgumentType]
             return (cache[params._optimal_concerns()][0], np.array(cache[params._optimal_concerns()][1])) # pyright: ignore[reportReturnType, reportIndexIssue, reportCallIssue, reportArgumentType, reportOperatorIssue]
@@ -146,7 +146,7 @@ def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.n
     num_robots = params.n_robots
     num_segments = params.n_tasks + 1 # pyright: ignore[reportOperatorIssue] the assertion catches it
     
-    
+    params.task_distribution = params.task_distribution # pyright: ignore[reportAttributeAccessIssue]
     best_delivery_count = 0
     best_allocation = None
     params.robot_initial_placements = [np.array(possible_assignment) for possible_assignment in assignments(num_robots, num_segments)]
@@ -216,10 +216,9 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = [2,3,4,5]
-    params.n_robots = [20,30,40,50]
-    
-    run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
+    params.n_tasks = [3]
+    params.task_distribution = [np.array([10,20,30,40])]
+    run_and_save(params, "testing.tsv", 5, itterations_per_combo=1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
