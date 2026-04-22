@@ -185,8 +185,8 @@ def ArenaView(model):
 
 # ── Throughput / delivery plots ───────────────────────────────────────────────
 
-DeliveryPlot = make_plot_component("Total Deliveries")
-ThroughputPlot = make_plot_component("Throughput")
+DeliveryPlot = make_plot_component("total_deliveries")
+ThroughputPlot = make_plot_component("throughput")
 Task_assignment_plot = make_plot_component([f"Segment {s}" for s in range(2)])
 
 # StateBreakdownPlot = make_plot_component("")
