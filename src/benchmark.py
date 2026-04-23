@@ -217,8 +217,12 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 def main():
     params = ModelParams()
     params.n_tasks = [3]
-    params.task_distribution = [np.array([10,20,30,40])]
-    run_and_save(params, "testing.tsv", 5, itterations_per_combo=1)
+    params.task_distribution = [np.array([10,20,30,40]),
+                                np.array([25,25,25,25]),
+                                np.array([40,30,20,10]),
+                                np.array([15,35,35,15]),
+                                np.array([35,15,15,35])]
+    run_and_save(params, "results.tsv", 5, itterations_per_combo=1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
