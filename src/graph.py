@@ -1,3 +1,5 @@
+import random
+import numpy as np
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
@@ -15,17 +17,68 @@ def load_file(filename: str):
 def example(filename: str):
     df = load_file(filename)
     print(df)
+
+def plot_graph(df: pd.DataFrame, start_row: int = 0, end_row: int = -1, sort_by: str | None = None, group_by: str | None = None):
+    if end_row == -1:
+        end_row = len(df)
+    df_slice = df.iloc[start_row:end_row]
     
+    if sort_by is not None:
+        if sort_by not in df_slice.columns:
+            raise ValueError(f"sort_by column '{sort_by}' not found in dataframe")
+        df_slice = df_slice.sort_values(by=sort_by)
+        print(df_slice)
+    
+    plt.figure(figsize=(10, 6))
+    
+    if group_by is not None:
+        if group_by not in df_slice.columns:
+            raise ValueError(f"group_by column '{group_by}' not found in dataframe")
+        groups = df_slice.groupby(group_by)
+        colors = plt.cm.viridis(np.linspace(0, 1, len(groups)))
+        for i, (name, group) in enumerate(groups):
+            plt.scatter(group[f"{args.xlabel}"], group[f"{args.ylabel}"], marker='o', color=colors[i], label=f"{group_by}={name}")
+        plt.legend()
+    else:
+        plt.plot(df_slice[f"{args.xlabel}"], df_slice[f"{args.ylabel}"], marker='o')
+    
+    title = f"{args.ylabel} vs {args.xlabel}"
+    if sort_by is not None:
+        title += f" (sorted by {sort_by})"
+    if group_by is not None:
+        title += f" (grouped by {group_by})"
+    
+    plt.title(title)
+    plt.xlabel(f"{args.xlabel}")
+    plt.ylabel(f"{args.ylabel}")
+    plt.grid()
+    plt.show()
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--filename", type=str, default="results.tsv")
-    parser.add_argument("--mode", type=str, choices=["example"], default="example")
+    parser.add_argument("--xlabel", type=str, default="iteration")
+    parser.add_argument("--ylabel", type=str, default="throughput")
+    parser.add_argument("--start_row", type=int, default=20)
+    parser.add_argument("--end_row", type=int, default=35)
+    parser.add_argument("--sort_by", type=str, default=None)
+    parser.add_argument("--filter_num", type=int, default=None)
+    parser.add_argument("--group_by", type=str, default=None)
+    parser.add_argument("--mode", type=str, choices=["example", "load_file", "plot_graph"], default="example")
     
+    # tasks = [3]
+    # n_robots = [4, 8, 12, 16, 20, 24, 28, 32]
     
-    args = parser.parse_args()
+    # args = parser.parse_args(["--filename", "results.tsv", "--mode", "load_file"])
+    args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "total_deliveries", "--mode", "plot_graph", "--sort_by", "n_tasks", "--group_by", "n_tasks"])
     
     match args.mode:
         case "example":
             example(args.filename)
+        case "load_file":
+            load_file(args.filename)
+        case "plot_graph":
+            df = load_file(args.filename)
+            plot_graph(df, args.start_row, args.end_row, args.sort_by, args.group_by)
+        
     
