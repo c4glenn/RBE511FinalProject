@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import pandas as pd
+from typing import List, Dict, Any
 import argparse
 import matplotlib.pyplot as plt
 from benchmark import RunResult
@@ -9,6 +10,7 @@ column_names = [k for k,v in RunResult().__dict__.items() if k != "allocation"]
 
 def load_file(filename: str):
     df = pd.read_csv(filename, sep="\t", names=column_names)
+    df = df[df["n_tasks"] == 3]
     print(column_names)
     return df
 
@@ -18,11 +20,18 @@ def example(filename: str):
     df = load_file(filename)
     print(df)
 
-def plot_graph(df: pd.DataFrame, start_row: int = 0, end_row: int = -1, sort_by: str | None = None, group_by: str | None = None):
+def plot_graph(df: pd.DataFrame, start_row: int = 0, end_row: int = -1, sort_by: str | None = None, filter_num: List[int] | None = None, group_by: str | None = None):
     if end_row == -1:
         end_row = len(df)
     df_slice = df.iloc[start_row:end_row]
-    
+
+    if filter_num is not None:
+        if sort_by is None:
+            raise ValueError("filter_num requires sort_by to be set")
+        if sort_by not in df_slice.columns:
+            raise ValueError(f"sort_by column '{sort_by}' not found in dataframe")
+        df_slice = df_slice[df_slice[f"{sort_by}"].isin(filter_num)]
+
     if sort_by is not None:
         if sort_by not in df_slice.columns:
             raise ValueError(f"sort_by column '{sort_by}' not found in dataframe")
@@ -30,12 +39,15 @@ def plot_graph(df: pd.DataFrame, start_row: int = 0, end_row: int = -1, sort_by:
         print(df_slice)
     
     plt.figure(figsize=(10, 6))
+
     
     if group_by is not None:
         if group_by not in df_slice.columns:
             raise ValueError(f"group_by column '{group_by}' not found in dataframe")
         groups = df_slice.groupby(group_by)
         colors = plt.cm.viridis(np.linspace(0, 1, len(groups)))
+        cbar = plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ticks=np.arange(len(groups)))
+        cbar.set_label(f"{group_by}")
         for i, (name, group) in enumerate(groups):
             plt.scatter(group[f"{args.xlabel}"], group[f"{args.ylabel}"], marker='o', color=colors[i], label=f"{group_by}={name}")
         plt.legend()
@@ -59,10 +71,11 @@ if __name__ == "__main__":
     parser.add_argument("--filename", type=str, default="results.tsv")
     parser.add_argument("--xlabel", type=str, default="iteration")
     parser.add_argument("--ylabel", type=str, default="throughput")
-    parser.add_argument("--start_row", type=int, default=20)
-    parser.add_argument("--end_row", type=int, default=35)
+    parser.add_argument("--start_row", type=int, default=0)
+    parser.add_argument("--end_row", type=int, default=-1)
     parser.add_argument("--sort_by", type=str, default=None)
-    parser.add_argument("--filter_num", type=int, default=None)
+    parser.add_argument("--filter_num", type=int, nargs='+', default=None,
+                        help="One or more values to filter the sort_by column")
     parser.add_argument("--group_by", type=str, default=None)
     parser.add_argument("--mode", type=str, choices=["example", "load_file", "plot_graph"], default="example")
     
@@ -70,7 +83,7 @@ if __name__ == "__main__":
     # n_robots = [4, 8, 12, 16, 20, 24, 28, 32]
     
     # args = parser.parse_args(["--filename", "results.tsv", "--mode", "load_file"])
-    args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "total_deliveries", "--mode", "plot_graph", "--sort_by", "n_tasks", "--group_by", "n_tasks"])
+    args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "total_deliveries", "--mode", "plot_graph", "--sort_by", "n_robots", "--filter_num", "4", "8", "12", "16", "20", "24", "28", "32", "--group_by", "mae"])
     
     match args.mode:
         case "example":
@@ -79,6 +92,6 @@ if __name__ == "__main__":
             load_file(args.filename)
         case "plot_graph":
             df = load_file(args.filename)
-            plot_graph(df, args.start_row, args.end_row, args.sort_by, args.group_by)
+            plot_graph(df, args.start_row, args.end_row, args.sort_by, args.filter_num, args.group_by)
         
     
