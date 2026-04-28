@@ -46,11 +46,11 @@ def plot_graph(df: pd.DataFrame, start_row: int = 0, end_row: int = -1, sort_by:
             raise ValueError(f"group_by column '{group_by}' not found in dataframe")
         groups = df_slice.groupby(group_by)
         colors = plt.cm.viridis(np.linspace(0, 1, len(groups)))
-        cbar = plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ticks=np.arange(len(groups)))
+        cbar = plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax = plt.gca())
         cbar.set_label(f"{group_by}")
         for i, (name, group) in enumerate(groups):
             plt.scatter(group[f"{args.xlabel}"], group[f"{args.ylabel}"], marker='o', color=colors[i], label=f"{group_by}={name}")
-        plt.legend()
+        # plt.legend()
     else:
         plt.plot(df_slice[f"{args.xlabel}"], df_slice[f"{args.ylabel}"], marker='o')
     
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     # n_robots = [4, 8, 12, 16, 20, 24, 28, 32]
     
     # args = parser.parse_args(["--filename", "results.tsv", "--mode", "load_file"])
-    args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "total_deliveries", "--mode", "plot_graph", "--sort_by", "n_robots", "--filter_num", "4", "8", "12", "16", "20", "24", "28", "32", "--group_by", "mae"])
+    args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "mae", "--mode", "plot_graph", "--sort_by", "n_robots", "--filter_num", "4", "8", "12", "16", "20", "24", "28", "32", "--group_by", "total_deliveries"])
     
     match args.mode:
         case "example":
