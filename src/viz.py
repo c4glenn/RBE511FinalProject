@@ -197,9 +197,8 @@ Task_assignment_plot = make_plot_component([f"Segment {s}" for s in range(2)])
 model = SwarmModel(
     n_robots=20,
     n_tasks=1,
-    speed=20.0,
-    task_distribution=np.array([50,50]),
-    robot_initial_placements=np.array([15,5])
+    speed=3.0,
+    task_distribution=np.array([50,50])
 )
 
 page = SolaraViz(
