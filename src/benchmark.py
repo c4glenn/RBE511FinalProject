@@ -254,7 +254,8 @@ def recalc_optimal():
         run = RunResult(*row)
         oc, oa = find_optimal(run, 5)
         df.at[i, "optimal_delivery_count"] = oc
-    df.to_csv("new_results.tsv", sep="\t")
+    df.to_csv("new_results.tsv", sep="\t", header=False, index=False)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
