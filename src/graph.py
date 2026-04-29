@@ -14,8 +14,6 @@ column_names = [k for k,v in RunResult().__dict__.items() if k != "allocation"]
 
 def load_file(filename: str):
     df = pd.read_csv(filename, sep="\t", names=column_names)
-    df = df[df["n_tasks"] == 3]
-    print(column_names)
     return df
 
 
@@ -83,6 +81,7 @@ def violin_categorical(filename: str, category: str, value: str, block_x_name: O
     elif block_x_name or block_y_name:
         name = block_x_name if block_x_name else block_y_name
         x_options = sorted(df[name].unique())
+        print(df[name])
         y_options = [None]
         length = len(x_options)
         ncols = math.ceil(math.sqrt(length))
@@ -204,10 +203,10 @@ if __name__ == "__main__":
     # n_robots = [4, 8, 12, 16, 20, 24, 28, 32]
     
     # args = parser.parse_args(["--filename", "results.tsv", "--mode", "load_file"])
-    args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "mae", "--mode", "plot_graph", "--sort_by", "n_robots", "--filter_num", "4", "8", "12", "16", "20", "24", "28", "32", "--group_by", "total_deliveries"])
+    # args = parser.parse_args(["--filename", "results.tsv", "--xlabel", "n_robots", "--ylabel", "mae", "--mode", "plot_graph", "--sort_by", "n_robots", "--filter_num", "4", "8", "12", "16", "20", "24", "28", "32", "--group_by", "total_deliveries"])
     
 
-    # args = parser.parse_args()
+    args = parser.parse_args()
         
     match args.mode:
         case "example":
