@@ -2,10 +2,12 @@
 from typing import Optional, Tuple, List, Dict, Any
 import datetime
 import logging
+import math
 import argparse
 from dataclasses import dataclass
 import copy
 import numpy as np
+import pandas as pd
 import tqdm
 import jsonpickle
 import mesa
@@ -83,7 +85,7 @@ class ModelParams():
         }
 
     def _optimal_concerns(self) -> str:
-        return f"ModelParams({self.n_robots=},{self.n_tasks=}{self.speed=},{self.arena_width=},{self.arena_height=},{self.interface_gap=},{self.task_dist_calc=},{self.task_distribution=},{self.delay_random_range=},{self.transfer_time=},{self.pickup_time=},{self.dropoff_time=}"
+        return f"ModelParams({self.n_robots=},{self.n_tasks=},{self.speed=},{self.arena_width=},{self.arena_height=},{self.interface_gap=},{self.task_dist_calc=},{self.task_distribution=},{self.delay_random_range=},{self.transfer_time=},{self.pickup_time=},{self.dropoff_time=}"
 
     def __hash__(self) -> int:
         return hash(f"{self.n_robots}{self.n_tasks}{self.speed}{self.arena_width}{self.arena_height}{self.interface_gap}{self.task_dist_calc}{self.task_distribution}{self.robot_initial_placements}{self.delay_random_range}{self.transfer_time}{self.pickup_time}{self.dropoff_time}")
@@ -107,6 +109,14 @@ class RunResult(ModelParams):
     
     def __post_init__(self):
         self.creation_time = datetime.datetime.now() #to help ensure uniqueness between runs? we shall see
+        try:
+            if math.isnan(self.task_distribution): self.task_distribution = None
+        except:
+            pass
+        try:
+            if math.isnan(self.robot_initial_placements): self.robot_initial_placements = None
+        except:
+            pass
 
     def save(self, filename: str):
         with open(filename, "a+") as f:
@@ -134,12 +144,24 @@ def assignments(num_robots, num_tasks, depth=0):
 def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.ndarray]:
     with open("optimal.json", "r+") as f:
         cache = jsonpickle.decode(f.read())
+    flag = False
+    params.delay_random_range = (0.0, 10.0)
     # print([x for x in cache.keys()][-1])
-    # print(params.__repr__())
-        
+    # print(params._optimal_concerns(), params._optimal_concerns() in cache)
+    if params.task_distribution is not None:
+            if isinstance(params.task_distribution, str):
+                params.task_distribution = [[int(x) for x in params.task_distribution[1:-1].split(" ")]]
+                flag = True
+            
     if params._optimal_concerns() in cache: 
         if cache[params._optimal_concerns()][1] is not None: # pyright: ignore[reportIndexIssue, reportCallIssue, reportArgumentType]
             return (cache[params._optimal_concerns()][0], np.array(cache[params._optimal_concerns()][1])) # pyright: ignore[reportReturnType, reportIndexIssue, reportCallIssue, reportArgumentType, reportOperatorIssue]
+    
+    print([x for x in cache.keys()][-1])
+    print(params._optimal_concerns(), params._optimal_concerns() in cache) 
+    if flag:
+        params.task_distribution = params.task_distribution[0]
+    
     params = copy.deepcopy(params)
     params.allowed_to_switch = False
     assert params.is_singleton, "cant find the optimal for a sweep"
@@ -153,9 +175,9 @@ def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.n
     if len(params.robot_initial_placements) >= 20:
         params.robot_initial_placements = []
         if params.task_distribution is not None:
-            assumed_optimal = [np.floor((x/100)*num_robots) for x in params.task_distribution] # pyright: ignore[reportOptionalIterable] assertion above handles this
+            assumed_optimal = [np.floor((x/100.0)*num_robots) for x in params.task_distribution] # pyright: ignore[reportOptionalIterable] assertion above handles this
         else:
-            assumed_optimal = [np.floor((num_segments/100)*num_robots) for _ in range(num_segments)] # pyright: ignore[reportOperatorIssue]
+            assumed_optimal = [num_robots/num_segments for _ in range(num_segments)] # pyright: ignore[reportOperatorIssue]
         assumed_optimal[0] += num_robots - sum(assumed_optimal) # pyright: ignore[reportOperatorIssue] asssertion handles this 
         # ^ logically this is to ensure theres no leftover agents due to the floor
         params.robot_initial_placements.append(np.array(assumed_optimal))
@@ -168,9 +190,8 @@ def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.n
                 params.robot_initial_placements.append(np.array(potential_arrangement))
         
     
-    
-                
-    
+    if flag:
+        params.task_distribution = [params.task_distribution]
     
     results = mesa.batch_run(
         SwarmModel,
@@ -181,11 +202,13 @@ def find_optimal(params:ModelParams, number_process: int = 1) -> Tuple[int, np.n
         rng=42 #pyright: ignore[reportArgumentType] THIS IS LITERALLY WHAT THE DOCS SAY TO DO https://mesa.readthedocs.io/latest/migration_guide.html#batch-run
     )
 
-    results = sorted(results, key=lambda x: x["total_deliveries"])
+    results = sorted(results, key=lambda x: x["total_deliveries"], reverse=True)
+    print([x["total_deliveries"] for x in results])
     best_result = results[0]
     best_delivery_count = best_result["total_deliveries"]
     best_allocation = best_result["robot_initial_placements"]
     cache[params._optimal_concerns()] = (best_delivery_count, best_allocation) # type: ignore
+    print(params._optimal_concerns())
     with open("optimal.json", "w+") as f:
         f.write(jsonpickle.encode(cache)) # type: ignore
     
@@ -224,6 +247,14 @@ def main():
                                 # np.array([35,15,15,35])
                                 ]
     run_and_save(params, "results.tsv", 5, itterations_per_combo=20)
+    
+def recalc_optimal():
+    df = pd.read_csv("results.tsv", sep="\t", names=[k for k,v in RunResult().__dict__.items() if k != "allocation"])
+    for i, row in tqdm.tqdm(df.iterrows()):
+        run = RunResult(*row)
+        oc, oa = find_optimal(run, 5)
+        df.at[i, "optimal_delivery_count"] = oc
+    df.to_csv("new_results.tsv", sep="\t")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -244,4 +275,5 @@ if __name__ == "__main__":
     logger.addHandler(handler)
     logger.setLevel(log_level_map[args.log_level])
     
-    main()
+    # main()
+    recalc_optimal()
