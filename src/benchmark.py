@@ -239,14 +239,18 @@ def run_and_save(params: ModelParams, filename: str, number_process:int = 1, itt
 
 def main():
     params = ModelParams()
-    params.n_tasks = [3]
-    params.task_distribution = [np.array([10,20,30,40]),
-                                np.array([25,25,25,25]),
-                                np.array([40,30,20,10])
-                                # np.array([15,35,35,15]),
-                                # np.array([35,15,15,35])
-                                ]
-    run_and_save(params, "results.tsv", 5, itterations_per_combo=20)
+    # params.n_tasks = [3]
+    # params.task_distribution = [np.array([10,20,30,40]),
+    #                             np.array([25,25,25,25]),
+    #                             np.array([40,30,20,10])
+    #                             # np.array([15,35,35,15]),
+    #                             # np.array([35,15,15,35])
+    #                             ]
+    params.n_tasks = list(range(1, 5, 1))
+    params.switching_cost = list(range(20, 90, 5))
+    params.n_robots = list(range(15, 40, 5))
+    
+    run_and_save(params, "sweep.tsv", 5, itterations_per_combo=20)
     
 def recalc_optimal():
     df = pd.read_csv("results.tsv", sep="\t", names=[k for k,v in RunResult().__dict__.items() if k != "allocation"])
@@ -276,5 +280,5 @@ if __name__ == "__main__":
     logger.addHandler(handler)
     logger.setLevel(log_level_map[args.log_level])
     
-    # main()
-    recalc_optimal()
+    main()
+    # recalc_optimal()
