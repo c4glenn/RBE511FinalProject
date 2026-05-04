@@ -67,7 +67,7 @@ def plot_graph(df: pd.DataFrame, start_row: int = 0, end_row: int = -1, sort_by:
     plt.grid()
     plt.show()
     
-def violin_categorical(filename: str, category: str, value: str, block_x_name: Optional[str], block_y_name: Optional[str]):
+def violin_categorical(filename: str, category: str, value: str, block_x_name: Optional[str], block_y_name: Optional[str], remove_cats: Optional[List[Any]]):
     df = load_file(filename)
     df["total_deliveries"] = [int(x) for x in df["total_deliveries"]]
     df["optimal_delivery_count"] = [int(x) for x in df["optimal_delivery_count"]]
@@ -80,8 +80,11 @@ def violin_categorical(filename: str, category: str, value: str, block_x_name: O
         nrows = len(y_options)
     elif block_x_name or block_y_name:
         name = block_x_name if block_x_name else block_y_name
-        x_options = sorted(df[name].unique())
-        print(df[name])
+        try:
+            x_options = sorted(df[name].unique())
+        except:
+            x_options = df[name].unique()
+        print(x_options)
         y_options = [None]
         length = len(x_options)
         ncols = math.ceil(math.sqrt(length))
@@ -97,39 +100,61 @@ def violin_categorical(filename: str, category: str, value: str, block_x_name: O
     axes_flat = np.array(axes).flatten()
 
     for x_col, y_col in product(x_options, y_options):
+        print(x_col, y_col)
         x_idx = list(x_options).index(x_col)
         y_idx = list(y_options).index(y_col)
         
         if x_col is not None and y_col is not None:
+            if remove_cats and str(x_col) in remove_cats: continue
+            if remove_cats and str(y_col) in remove_cats: continue
             df_filtered = df[(df[block_x_name] == x_col) & (df[block_y_name] == y_col)].copy()
             ax = axes[y_idx][x_idx]
         elif x_col is not None or y_col is not None:
             name = block_x_name if block_x_name else block_y_name
-            df_filtered = df[(df[name] == x_col if block_x_name else y_col)].copy()
+            col_result = x_col if block_x_name else y_col
+            if remove_cats and str(col_result) in remove_cats: continue
+            print(col_result, remove_cats)
+            if isinstance(col_result, float) and math.isnan(col_result):
+                df_filtered = df[df[name].isna()].copy()
+            else:
+                df_filtered = df[df[name] == col_result].copy()
             ax = axes_flat[x_idx if block_x_name else y_idx]
         else:
             df_filtered = df.copy()
             ax = axes
 
         if df_filtered.empty:
-            print(x_col, y_col, "is empty")
+            print(x_col, "is empty")
             ax.set_visible(False)
             continue
         
-        categories = sorted(df_filtered[category].unique())
+        try:
+            categories = sorted(df_filtered[category].unique())
+        except:
+            categories = df_filtered[category].unique()
         n_cats = len(categories)
+
         if n_cats > 10 and pd.api.types.is_numeric_dtype(df_filtered[category]):
             df_filtered[category] = pd.cut(df_filtered[category], bins=10)
             categories = sorted(df_filtered[category].unique())
             n_cats = len(categories)
-
         
+        grouped_data = []
+        for cat in categories:
+            if remove_cats and cat in remove_cats: continue
+            if isinstance(cat, float) and math.isnan(cat):
+                if remove_cats and 'nan' in remove_cats: continue # pyright: ignore[reportOperatorIssue]
+                grouped_data.append((df_filtered[df_filtered[category].isna()][value].dropna().values, cat))
+            else:
+                grouped_data.append((df_filtered[df_filtered[category] == cat][value].dropna().values, cat))
+        
+        grouped_data = [x for x in grouped_data if not x[0].size == 0]
+        names = [x[1] for x in grouped_data]
+        grouped_data = [x[0] for x in grouped_data]
+        n_cats = len(grouped_data)
+        print(n_cats)
         colors = plt.cm.Set2(np.linspace(0, 1, n_cats)) # pyright: ignore[reportAttributeAccessIssue]
 
-        grouped_data = [
-            df_filtered[df_filtered[category] == cat][value].dropna().values
-            for cat in categories
-        ]
         
         parts = ax.violinplot(
             grouped_data,
@@ -145,7 +170,7 @@ def violin_categorical(filename: str, category: str, value: str, block_x_name: O
 
         for partname in ("cmedians", "cmins", "cmaxes", "cbars"):
             parts[partname].set_edgecolor("black")
-            parts[partname].set_linewidth(1.2)
+            parts[partname].set_linewidth(2.4)
 
         for i, (data, color) in enumerate(zip(grouped_data, colors)):
             jitter = np.random.uniform(-0.1, 0.1, size=len(data)) #for the x so that nearby data doesnt occlude as much
@@ -162,7 +187,7 @@ def violin_categorical(filename: str, category: str, value: str, block_x_name: O
 
     # Labels and formatting
         ax.set_xticks(range(1, n_cats + 1))
-        ax.set_xticklabels(categories, rotation=30, ha="right", fontsize=11)
+        ax.set_xticklabels(names, rotation=30, ha="right", fontsize=11)
         ax.set_xlabel(category, fontsize=12)
         ax.set_ylabel(value, fontsize=12)
         ax.set_title(f"{block_x_name}={x_col} : {block_y_name}={y_col}", fontsize=14, fontweight="bold")
@@ -172,6 +197,17 @@ def violin_categorical(filename: str, category: str, value: str, block_x_name: O
     plt.tight_layout()
     plt.show()
     
+def scatter_graph(filename):
+    df = load_file(filename)
+
+    df = df[df["task_distribution"].isna()]
+    # print(df["n_tasks"])
+    df["total_deliveries"] = [int(x) for x in df["total_deliveries"]]
+    df["optimal_delivery_count"] = [int(x) for x in df["optimal_delivery_count"]]
+    df["delivery_ratio"] = df["total_deliveries"] / df["optimal_delivery_count"]
+
+    plt.scatter(df["n_tasks"], df["total_crossings"] / df["n_robots"])
+    plt.show()
 
 
     
@@ -180,13 +216,14 @@ column_names = ['n_robots', 'n_tasks', 'speed', 'seed', 'arena_width', 'arena_he
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--filename", type=str, default="results.tsv")
-    parser.add_argument("--mode", type=str, choices=["example", "load_file", "plot_graph", "violin"], default="example")
+    parser.add_argument("--mode", type=str, choices=["example", "load_file", "plot_graph", "violin", "scatter"], default="example")
     
     
     violin_args = parser.add_argument_group("violin args", description="Arguments for the categorical violin graph")
     violin_args.add_argument("--x_block", type=str, default=None, choices=column_names, help="Select a category to split on the x axis")
     violin_args.add_argument("--y_block", type=str, default=None, choices=column_names, help="Select a category to split on the y axis")
     violin_args.add_argument("--category", type=str, default="n_tasks", choices=column_names, help="Select a category for each violin type")
+    violin_args.add_argument("--remove_cats", nargs='+')
     violin_args.add_argument("--value",  type=str, default="delivery_ratio", choices=column_names, help="Select a column to use as the y axis for the violins")
     
     
@@ -217,8 +254,9 @@ if __name__ == "__main__":
             df = load_file(args.filename)
             plot_graph(df, args.start_row, args.end_row, args.sort_by, args.filter_num, args.group_by)
         case "violin":
-            violin_categorical(filename=args.filename,category=args.category, value=args.value, block_x_name=args.x_block, block_y_name=args.y_block)
-        
+            violin_categorical(filename=args.filename,category=args.category, value=args.value, block_x_name=args.x_block, block_y_name=args.y_block, remove_cats=args.remove_cats)
+        case "scatter":
+            scatter_graph(args.filename)
 # Bad Test Data:
 # 20	3	3.0	39205	600.0	200.0	25.0	50	[10 20 30 40]	None	True	0.1	5	8	30	(0.0, 10.0)	3	1	1	0	0	3600.0	163	274	0.08163265306122448	105	0.20787495519032198	2026-04-23 12:12:46.395372
 # 20	3	3.0	39205	600.0	200.0	25.0	50	[40 30 20 10]	None	True	0.1	5	8	30	(0.0, 10.0)	3	1	1	2	0	3600.0	159	275	0.04081632653061224	124	0.22948188726729996	2026-04-23 12:12:46.425790
